@@ -43,8 +43,13 @@ fun NavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("collarId") { type = NavType.LongType })
         ) { backStackEntry ->
             val collarId = backStackEntry.arguments?.getLong("collarId")
+            println("DEBUG NavGraph: collarId extraído: $collarId")
             if (collarId != null && collarId != 0L) {
                 EditDeviceScreen(navController = navController, collarId = collarId)
+            } else {
+                println("DEBUG NavGraph: collarId inválido o nulo")
+                // Mostrar un mensaje de error o navegar de vuelta
+                navController.popBackStack()
             }
         }
     }

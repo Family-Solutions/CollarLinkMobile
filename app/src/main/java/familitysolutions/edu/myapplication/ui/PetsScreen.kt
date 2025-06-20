@@ -15,8 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import familitysolutions.edu.myapplication.model.Pet
-import familitysolutions.edu.myapplication.model.PetRequest
-import familitysolutions.edu.myapplication.model.UpdatePetRequest
 import familitysolutions.edu.myapplication.viewmodel.PetViewModel
 import familitysolutions.edu.myapplication.viewmodel.PetsState
 
@@ -34,6 +32,7 @@ fun PetsScreen(viewModel: PetViewModel = hiltViewModel()) {
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text("Mascotas", style = MaterialTheme.typography.headlineMedium)
         Spacer(modifier = Modifier.height(16.dp))
+        
         when (petsState) {
             is PetsState.Loading -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -45,22 +44,28 @@ fun PetsScreen(viewModel: PetViewModel = hiltViewModel()) {
             }
             is PetsState.Success -> {
                 val pets = (petsState as PetsState.Success).pets
-                LazyColumn(Modifier.weight(1f)) {
-                    items(pets) { pet ->
-                        PetCardFigma(
-                            pet = pet,
-                            onEdit = { showEditDialog = true to pet },
-                            onDelete = {
-                                viewModel.deletePet(pet.id)
-                                viewModel.getPetsForCurrentUser()
-                            }
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
+                if (pets.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No hay mascotas. Agregue una.", style = MaterialTheme.typography.bodyLarge)
+                    }
+                } else {
+                    LazyColumn(Modifier.weight(1f)) {
+                        items(pets) { pet ->
+                            PetCardFigma(
+                                pet = pet,
+                                onEdit = { showEditDialog = true to pet },
+                                onDelete = {
+                                    viewModel.deletePet(pet.id)
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
                 }
             }
             else -> {}
         }
+        
         Spacer(modifier = Modifier.height(16.dp))
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Button(
@@ -78,33 +83,23 @@ fun PetsScreen(viewModel: PetViewModel = hiltViewModel()) {
         AddEditPetDialog(
             onDismiss = { showAddDialog = false },
             onSave = { name, species, breed, gender, age, collarId ->
-                viewModel.createPet(
-                    PetRequest(
-                        username = "",
-                        collarId = collarId,
-                        name = name,
-                        species = species,
-                        breed = breed,
-                        gender = gender,
-                        age = age
-                    )
-                )
+                viewModel.createPet(name, species, breed, gender, age, collarId)
                 showAddDialog = false
-                viewModel.getPetsForCurrentUser()
             }
         )
     }
+    
     if (showEditDialog.first && showEditDialog.second != null) {
         AddEditPetDialog(
             pet = showEditDialog.second,
             onDismiss = { showEditDialog = false to null },
-            onSave = { name, species, breed, gender, age, _ ->
-                viewModel.updatePet(
-                    showEditDialog.second!!.id,
-                    UpdatePetRequest(name, species, breed, gender, age)
-                )
+            onSave = { name, species, breed, gender, age, collarId ->
+                viewModel.updatePet(showEditDialog.second!!.id, name, species, breed, gender, age)
+                // Si hay un collarId diferente, actualizar la asociación
+                if (collarId != showEditDialog.second!!.collarId) {
+                    viewModel.updatePetCollar(showEditDialog.second!!.id, collarId)
+                }
                 showEditDialog = false to null
-                viewModel.getPetsForCurrentUser()
             }
         )
     }
@@ -123,8 +118,9 @@ fun PetCardFigma(pet: Pet, onEdit: () -> Unit, onDelete: () -> Unit) {
             Text("${pet.name}", style = MaterialTheme.typography.titleMedium)
             Text("Especie: ${pet.species}")
             Text("Raza: ${pet.breed}")
+            Text("Género: ${pet.gender}")
             Text("Edad: ${pet.age} años")
-            Text("Dispositivo: ${pet.collarId}")
+            Text("Dispositivo: ${if (pet.collarId != null && pet.collarId != 0L) "ID ${pet.collarId}" else "Sin dispositivo"}")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onEdit) { Text("Editar") }
                 TextButton(onClick = onDelete) { Text("Eliminar") }
@@ -133,16 +129,17 @@ fun PetCardFigma(pet: Pet, onEdit: () -> Unit, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditPetDialog(
     pet: Pet? = null,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, String, Int, Long) -> Unit
+    onSave: (String, String, String, String, Int, Long?) -> Unit
 ) {
     var name by remember { mutableStateOf(pet?.name ?: "") }
     var species by remember { mutableStateOf(pet?.species ?: "") }
     var breed by remember { mutableStateOf(pet?.breed ?: "") }
-    var gender by remember { mutableStateOf(pet?.gender ?: "") }
+    var gender by remember { mutableStateOf(pet?.gender ?: "Macho") }
     var age by remember { mutableStateOf(pet?.age?.toString() ?: "") }
     var collarId by remember { mutableStateOf(pet?.collarId?.toString() ?: "") }
 
@@ -150,27 +147,94 @@ fun AddEditPetDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (pet == null) "Añadir Mascota" else "Editar Mascota") },
         text = {
-            Column {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre") })
-                OutlinedTextField(value = species, onValueChange = { species = it }, label = { Text("Especie") })
-                OutlinedTextField(value = breed, onValueChange = { breed = it }, label = { Text("Raza") })
-                OutlinedTextField(value = gender, onValueChange = { gender = it }, label = { Text("Género") })
-                OutlinedTextField(value = age, onValueChange = { age = it }, label = { Text("Edad") })
-                OutlinedTextField(value = collarId, onValueChange = { collarId = it }, label = { Text("Collar") })
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = name, 
+                    onValueChange = { name = it }, 
+                    label = { Text("Nombre") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = species, 
+                    onValueChange = { species = it }, 
+                    label = { Text("Especie (ej. Perro)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = breed, 
+                    onValueChange = { breed = it }, 
+                    label = { Text("Raza") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                // Dropdown para género
+                var genderExpanded by remember { mutableStateOf(false) }
+                
+                ExposedDropdownMenuBox(
+                    expanded = genderExpanded,
+                    onExpandedChange = { genderExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = gender,
+                        onValueChange = { gender = it },
+                        label = { Text("Género") },
+                        readOnly = true,
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = genderExpanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = genderExpanded,
+                        onDismissRequest = { genderExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Macho") },
+                            onClick = { 
+                                gender = "Macho"
+                                genderExpanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Hembra") },
+                            onClick = { 
+                                gender = "Hembra"
+                                genderExpanded = false
+                            }
+                        )
+                    }
+                }
+                
+                OutlinedTextField(
+                    value = age, 
+                    onValueChange = { age = it }, 
+                    label = { Text("Edad") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = collarId, 
+                    onValueChange = { collarId = it }, 
+                    label = { Text("ID del Dispositivo (Opcional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
+                    val collarIdLong = if (collarId.isNotBlank()) collarId.toLongOrNull() else null
                     onSave(
                         name,
                         species,
                         breed,
                         gender,
                         age.toIntOrNull() ?: 0,
-                        collarId.toLongOrNull() ?: 0L
+                        collarIdLong
                     )
-                }
+                },
+                enabled = name.isNotBlank() && species.isNotBlank() && breed.isNotBlank() && age.isNotBlank()
             ) {
                 Text(if (pet == null) "Agregar" else "Aceptar")
             }

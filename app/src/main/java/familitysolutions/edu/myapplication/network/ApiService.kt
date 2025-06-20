@@ -29,6 +29,29 @@ data class SignInResponse(
     val token: String
 )
 
+// Modelos de datos para mascotas
+data class PetRequest(
+    val username: String,
+    val collarId: Long?,
+    val name: String,
+    val species: String,
+    val breed: String,
+    val gender: String,
+    val age: Int
+)
+
+data class UpdatePetRequest(
+    val name: String,
+    val species: String,
+    val breed: String,
+    val gender: String,
+    val age: Int
+)
+
+data class UpdatePetCollarRequest(
+    val collarId: Long
+)
+
 interface ApiService {
     // Autenticación
     @POST("authentication/sign-up")
@@ -37,7 +60,7 @@ interface ApiService {
     @POST("authentication/sign-in")
     suspend fun signIn(@Body request: SignInRequest): Response<SignInResponse>
 
-    // Mascotas
+    // Mascotas - Endpoints completos según Swagger
     @GET("pet/{petId}")
     suspend fun getPet(@Path("petId") petId: Long): Response<Pet>
 
