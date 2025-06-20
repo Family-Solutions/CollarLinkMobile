@@ -1,12 +1,10 @@
 package familitysolutions.edu.myapplication.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import familitysolutions.edu.myapplication.model.*
 import familitysolutions.edu.myapplication.network.ApiService
-import familitysolutions.edu.myapplication.network.RetrofitInstance
 import familitysolutions.edu.myapplication.util.DataStoreManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,25 +14,18 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PetViewModel @Inject constructor(
-    application: Application
-) : AndroidViewModel(application) {
+    private val apiService: ApiService,
+    private val dataStoreManager: DataStoreManager
+) : ViewModel() {
 
     private val _petsState = MutableStateFlow<PetsState>(PetsState.Initial)
     val petsState: StateFlow<PetsState> = _petsState
-    private val context = getApplication<Application>().applicationContext
-
-    private suspend fun getApiServiceWithToken(): ApiService {
-        val token = DataStoreManager.getToken(context).first()
-        val retrofit = RetrofitInstance.getRetrofit(token)
-        return retrofit.create(ApiService::class.java)
-    }
 
     fun getPetsForCurrentUser() {
         viewModelScope.launch {
             _petsState.value = PetsState.Loading
             try {
-                val username = DataStoreManager.getUsername(context).first() ?: ""
-                val apiService = getApiServiceWithToken()
+                val username = dataStoreManager.getUsername.first() ?: ""
                 val response = apiService.getPetsByUsername(username)
                 if (response.isSuccessful) {
                     response.body()?.let { pets ->
@@ -55,7 +46,6 @@ class PetViewModel @Inject constructor(
         viewModelScope.launch {
             _petsState.value = PetsState.Loading
             try {
-                val apiService = getApiServiceWithToken()
                 val response = apiService.createPet(petRequest)
                 if (response.isSuccessful) {
                     response.body()?.let { pet ->
@@ -76,7 +66,6 @@ class PetViewModel @Inject constructor(
         viewModelScope.launch {
             _petsState.value = PetsState.Loading
             try {
-                val apiService = getApiServiceWithToken()
                 val response = apiService.updatePet(petId, updatePetRequest)
                 if (response.isSuccessful) {
                     response.body()?.let { pet ->
@@ -97,7 +86,6 @@ class PetViewModel @Inject constructor(
         viewModelScope.launch {
             _petsState.value = PetsState.Loading
             try {
-                val apiService = getApiServiceWithToken()
                 val response = apiService.deletePet(petId)
                 if (response.isSuccessful) {
                     _petsState.value = PetsState.PetDeleted

@@ -83,4 +83,17 @@ interface ApiService {
 
     @GET("geofence/username/{username}")
     suspend fun getGeofencesByUsername(@Path("username") username: String): Response<List<Geofence>>
+
+    // Collares
+    @GET("collar/username/{username}")
+    suspend fun getCollarsByUsername(@Path("username") username: String): Response<List<Collar>>
+
+    @POST("collar")
+    suspend fun createCollar(@Body request: CreateCollarRequest): Response<Collar>
+
+    @DELETE("collar/{collarId}")
+    suspend fun deleteCollar(@Path("collarId") collarId: String): Response<Unit>
+
+    @PUT("collar/{collarId}/pet")
+    suspend fun assignPetToCollar(@Path("collarId") collarId: String, @Body request: AssignPetToCollarRequest): Response<Collar>
 } 

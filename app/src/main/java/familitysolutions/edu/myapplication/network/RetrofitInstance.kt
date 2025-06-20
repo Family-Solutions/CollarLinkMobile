@@ -6,6 +6,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import okhttp3.Interceptor
 
 object RetrofitInstance {
     private const val BASE_URL = "https://collar-link-production.up.railway.app/api/v1/"
@@ -34,7 +35,7 @@ object RetrofitInstance {
             .build()
 
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl("https://collar-link-production.up.railway.app/api/v1/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

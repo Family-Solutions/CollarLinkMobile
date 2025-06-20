@@ -17,21 +17,15 @@ import androidx.navigation.NavController
 import familitysolutions.edu.myapplication.model.Pet
 import familitysolutions.edu.myapplication.model.PetRequest
 import familitysolutions.edu.myapplication.model.UpdatePetRequest
-import familitysolutions.edu.myapplication.util.DataStoreManager
 import familitysolutions.edu.myapplication.viewmodel.PetViewModel
 import familitysolutions.edu.myapplication.viewmodel.PetsState
-import kotlinx.coroutines.flow.first
 
 @Composable
-fun PetsScreen(navController: NavController, viewModel: PetViewModel = hiltViewModel()) {
+fun PetsScreen(viewModel: PetViewModel = hiltViewModel()) {
     var showAddDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf<Pair<Boolean, Pet?>>(false to null) }
-    var username by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-        // Obtener el username real de DataStore
-        val context = navController.context
-        username = DataStoreManager.getUsername(context).first() ?: ""
         viewModel.getPetsForCurrentUser()
     }
 
@@ -86,7 +80,7 @@ fun PetsScreen(navController: NavController, viewModel: PetViewModel = hiltViewM
             onSave = { name, species, breed, gender, age, collarId ->
                 viewModel.createPet(
                     PetRequest(
-                        username = username,
+                        username = "",
                         collarId = collarId,
                         name = name,
                         species = species,
@@ -104,7 +98,7 @@ fun PetsScreen(navController: NavController, viewModel: PetViewModel = hiltViewM
         AddEditPetDialog(
             pet = showEditDialog.second,
             onDismiss = { showEditDialog = false to null },
-            onSave = { name, species, breed, gender, age, collarId ->
+            onSave = { name, species, breed, gender, age, _ ->
                 viewModel.updatePet(
                     showEditDialog.second!!.id,
                     UpdatePetRequest(name, species, breed, gender, age)

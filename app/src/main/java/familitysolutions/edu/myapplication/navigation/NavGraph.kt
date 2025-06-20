@@ -2,15 +2,11 @@ package familitysolutions.edu.myapplication.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import familitysolutions.edu.myapplication.ui.HomeScreen
-import familitysolutions.edu.myapplication.ui.LoginScreen
-import familitysolutions.edu.myapplication.ui.PetsScreen
-import familitysolutions.edu.myapplication.ui.GeofencesScreen
-import familitysolutions.edu.myapplication.ui.DevicesScreen
-import familitysolutions.edu.myapplication.ui.MapScreen
-import familitysolutions.edu.myapplication.ui.SettingsScreen
+import androidx.navigation.navArgument
+import familitysolutions.edu.myapplication.ui.*
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -28,7 +24,7 @@ fun NavGraph(navController: NavHostController) {
             MapScreen(navController = navController)
         }
         composable("pets") {
-            PetsScreen(navController = navController)
+            PetsScreen()
         }
         composable("devices") {
             DevicesScreen(navController = navController)
@@ -38,6 +34,18 @@ fun NavGraph(navController: NavHostController) {
         }
         composable("settings") {
             SettingsScreen(navController = navController)
+        }
+        composable("add_device") {
+            AddDeviceScreen(navController = navController)
+        }
+        composable(
+            route = "edit_device/{collarId}",
+            arguments = listOf(navArgument("collarId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val collarId = backStackEntry.arguments?.getLong("collarId")
+            if (collarId != null && collarId != 0L) {
+                EditDeviceScreen(navController = navController, collarId = collarId)
+            }
         }
     }
 } 
