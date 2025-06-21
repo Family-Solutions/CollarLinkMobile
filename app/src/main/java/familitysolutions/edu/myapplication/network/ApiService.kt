@@ -52,6 +52,22 @@ data class UpdatePetCollarRequest(
     val collarId: Long
 )
 
+// Modelos de datos para geocercas
+data class GeofenceRequest(
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    val radius: Int,
+    val username: String
+)
+
+data class UpdateGeofenceRequest(
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    val radius: Int
+)
+
 interface ApiService {
     // Autenticación
     @POST("authentication/sign-up")
